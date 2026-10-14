@@ -4,7 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { ArrowLeft, Play, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { runCollectorNow } from "@/lib/admin.functions";
+import { adminCreateUser, runCollectorNow } from "@/lib/admin.functions";
+import { normalizePhone } from "@/lib/phone";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -43,6 +44,34 @@ function AdminPage() {
   });
   const [ownerPhone, setOwnerPhone] = useState<string | null>(null);
   const [price, setPrice] = useState<string | null>(null);
+  const createUser = useServerFn(adminCreateUser);
+  const [nu, setNu] = useState({ name: "", phone: "", password: "", paidDays: 0 });
+  const [addingUser, setAddingUser] = useState(false);
+  const [userMsg, setUserMsg] = useState("");
+  const tenders = useQuery({
+    queryKey: ["admin-tenders"],
+    queryFn: async () =>
+      (await supabase.from("tenders").select("id,title,organization,source_name,deadline,created_at").order("created_at", { ascending: false }).limit(500)).data ?? [],
+  });
+  async function addUser() {
+    const p = normalizePhone(nu.phone);
+    if (!p) return setUserMsg("ትክክለኛ ስልክ ቁጥር ያስገቡ");
+    setAddingUser(true); setUserMsg("");
+    try {
+      await createUser({ data: { ...nu, phone: p } });
+      setUserMsg(`✓ ${nu.name || p} ተመዝግቧል — በስልክ ${p} እና በሰጡት የይለፍ ቃል መግባት ይችላል`);
+      setNu({ name: "", phone: "", password: "", paidDays: 0 });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e) {
+      setUserMsg(e instanceof Error ? e.message : "ስህተት");
+    }
+    setAddingUser(false);
+  }
+  async function delTender(id: string) {
+    await supabase.from("tenders").delete().eq("id", id);
+    qc.invalidateQueries({ queryKey: ["admin-tenders"] });
+    qc.invalidateQueries({ queryKey: ["tenders"] });
+  }
 
   async function activate(id: string, days: number) {
     const until = days > 0 ? new Date(Date.now() + days * 86_400_000).toISOString() : null;
@@ -98,6 +127,42 @@ function AdminPage() {
           <input className={input} placeholder="ዋጋ (ለምሳሌ 300 ብር / ወር)" defaultValue={settings.data?.price_text} key={`t${settings.data?.price_text}`} onChange={(e) => setPrice(e.target.value)} />
           <button onClick={saveSettings} className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground">አስቀምጥ</button>
         </div>
+      </section>
+
+      <section className={card}>
+        <h2 className="font-display font-semibold">አዲስ ተጠቃሚ መዝግብ</h2>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <input className={input} placeholder="ሙሉ ስም" value={nu.name} onChange={(e) => setNu({ ...nu, name: e.target.value })} />
+          <input className={input} placeholder="ስልክ ቁጥር (09...)" inputMode="tel" value={nu.phone} onChange={(e) => setNu({ ...nu, phone: e.target.value })} />
+          <input className={input} placeholder="የይለፍ ቃል (ቢያንስ 6)" value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })} />
+          <select className={input} value={nu.paidDays} onChange={(e) => setNu({ ...nu, paidDays: Number(e.target.value) })}>
+            <option value={0}>ነፃ ሙከራ (7 ቀን)</option>
+            <option value={30}>ተከፍሏል — 1 ወር</option>
+            <option value={90}>ተከፍሏል — 3 ወር</option>
+            <option value={365}>ተከፍሏል — 1 ዓመት</option>
+          </select>
+        </div>
+        <button onClick={addUser} disabled={addingUser} className="mt-2 inline-flex h-10 items-center gap-1 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+          <Plus className="h-4 w-4" /> {addingUser ? "በመመዝገብ ላይ…" : "መዝግብ"}
+        </button>
+        {userMsg && <p className="mt-2 text-sm text-muted-foreground">{userMsg}</p>}
+      </section>
+
+      <section className={card}>
+        <h2 className="font-display font-semibold">የተመዘገቡ ጨረታዎች ({tenders.data?.length ?? 0})</h2>
+        <ul className="mt-3 max-h-[480px] divide-y overflow-y-auto">
+          {tenders.data?.map((t) => (
+            <li key={t.id} className="flex items-center gap-2 py-3 text-sm">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{t.title}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {t.organization || "—"} · {t.source_name} · የሚዘጋው: {t.deadline ?? "—"} · ተመዘገበ: {new Date(t.created_at).toLocaleDateString("am-ET")}
+                </p>
+              </div>
+              <button onClick={() => delTender(t.id)} className="rounded-lg p-1.5 text-muted-foreground hover:text-destructive" aria-label="ሰርዝ"><Trash2 className="h-4 w-4" /></button>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className={card}>
