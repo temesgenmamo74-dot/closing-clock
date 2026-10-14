@@ -65,8 +65,8 @@ function AdminPage() {
   }
   async function saveSettings() {
     await supabase.from("app_settings").update({
-      owner_phone: ownerPhone ?? settings.data?.owner_phone,
-      price_text: price ?? settings.data?.price_text,
+      owner_phone: ownerPhone ?? settings.data?.owner_phone ?? "",
+      price_text: price ?? settings.data?.price_text ?? "",
     }).eq("id", 1);
     qc.invalidateQueries({ queryKey: ["admin-settings"] });
     qc.invalidateQueries({ queryKey: ["me"] });
