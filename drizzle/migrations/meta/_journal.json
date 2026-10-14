@@ -1,5 +1,13 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791994713084,
+      "tag": "0000_tenders_core",
+      "breakpoints": true
+    }
+  ]
 }

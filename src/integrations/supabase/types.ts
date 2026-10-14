@@ -14,16 +14,216 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          id: number
+          owner_phone: string
+          price_text: string
+        }
+        Insert: {
+          id?: number
+          owner_phone?: string
+          price_text?: string
+        }
+        Update: {
+          id?: number
+          owner_phone?: string
+          price_text?: string
+        }
+        Relationships: []
+      }
+      collector_runs: {
+        Row: {
+          added: number
+          error: string | null
+          finished_at: string | null
+          id: string
+          started_at: string
+        }
+        Insert: {
+          added?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          started_at?: string
+        }
+        Update: {
+          added?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          started_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          paid_until: string | null
+          phone: string
+          trial_ends_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          paid_until?: string | null
+          phone: string
+          trial_ends_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          paid_until?: string | null
+          phone?: string
+          trial_ends_at?: string
+        }
+        Relationships: []
+      }
+      saved_tenders: {
+        Row: {
+          tender_id: string
+          user_id: string
+        }
+        Insert: {
+          tender_id: string
+          user_id: string
+        }
+        Update: {
+          tender_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_tenders_tender_id_fkey"
+            columns: ["tender_id"]
+            isOneToOne: false
+            referencedRelation: "tenders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sources: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          last_run_at: string | null
+          name: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          name: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          name?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      tenders: {
+        Row: {
+          address: string | null
+          category: string | null
+          created_at: string
+          deadline: string | null
+          email: string | null
+          fingerprint: string
+          id: string
+          organization: string | null
+          phone: string | null
+          posted_date: string | null
+          source_name: string | null
+          source_url: string | null
+          summary: string | null
+          title: string
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          created_at?: string
+          deadline?: string | null
+          email?: string | null
+          fingerprint: string
+          id?: string
+          organization?: string | null
+          phone?: string | null
+          posted_date?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          summary?: string | null
+          title: string
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          created_at?: string
+          deadline?: string | null
+          email?: string | null
+          fingerprint?: string
+          id?: string
+          organization?: string | null
+          phone?: string | null
+          posted_date?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          summary?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_access: { Args: { _uid: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +350,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
