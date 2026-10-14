@@ -144,7 +144,7 @@ function Index() {
               status:
                 STATUS_ORDER[
                   (STATUS_ORDER.indexOf(t.status) + 1) % STATUS_ORDER.length
-                ],
+                ] ?? "open",
             }
           : t,
       ),
