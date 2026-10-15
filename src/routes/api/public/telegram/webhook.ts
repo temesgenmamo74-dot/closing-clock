@@ -37,9 +37,17 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+        const reply = async (text: string) => {
+          try {
+            await sendTelegramMessage(chatId, text);
+          } catch (e) {
+            console.error("Telegram reply failed:", e instanceof Error ? e.message : e);
+          }
+        };
+
         if (text.startsWith("/stop")) {
           await supabaseAdmin.from("bot_subscribers").delete().eq("chat_id", chatId);
-          await sendTelegramMessage(chatId, "ተዉኝ — ከእንግዲህ ማሳወቂያ አልላክም። እንደገና ለመጀመር /start ይላኩ።");
+          await reply("ተዉኝ — ከእንግዲህ ማሳወቂያ አልላክም። እንደገና ለመጀመር /start ይላኩ።");
           return Response.json({ ok: true });
         }
 
@@ -47,14 +55,11 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           await supabaseAdmin
             .from("bot_subscribers")
             .upsert({ chat_id: chatId, first_name: firstName || null }, { onConflict: "chat_id" });
-          await sendTelegramMessage(
-            chatId,
-            "✅ ተመዝግበዋል! አዲስ ጨረታ ሲገባ እዚህ አሳውቃለሁ። ማሳወቂያውን ለማቆም በማንኛውም ጊዜ /stop ይላኩ።"
-          );
+          await reply("✅ ተመዝግበዋል! አዲስ ጨረታ ሲገባ እዚህ አሳውቃለሁ። ማሳወቂያውን ለማቆም በማንኛውም ጊዜ /stop ይላኩ።");
           return Response.json({ ok: true });
         }
 
-        await sendTelegramMessage(chatId, "አዲስ ጨረታ ሲገባ እዚህ አሳውቃለሁ። ለመመዝገብ /start ይላኩ።");
+        await reply("አዲስ ጨረታ ሲገባ እዚህ አሳውቃለሁ። ለመመዝገብ /start ይላኩ።");
         return Response.json({ ok: true });
       },
     },
