@@ -183,11 +183,19 @@ export async function runCollector(maxSources = 8) {
       if (/\[(402|403)\]/.test(msg)) break; // credit/policy: stop the run
     }
   }
+  let notified = 0;
+  if (fresh.length) {
+    try {
+      notified = await notifySubscribers(fresh);
+    } catch (e) {
+      errors.push(`telegram: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
   if (run) {
     await supabaseAdmin
       .from("collector_runs")
       .update({ finished_at: new Date().toISOString(), added, error: errors.join("\n").slice(0, 2000) || null })
       .eq("id", run.id);
   }
-  return { added, errors };
+  return { added, errors, notified };
 }
