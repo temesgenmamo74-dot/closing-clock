@@ -128,9 +128,12 @@ function fingerprint(t: Extracted) {
 
 const isDate = (s: string | null) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null);
 
+import { notifySubscribers } from "@/lib/telegram.server";
+
 export async function runCollector(maxSources = 8) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: run } = await supabaseAdmin.from("collector_runs").insert({}).select("id").single();
+  const fresh: { title: string; organization: string | null; deadline: string | null; source_url: string | null }[] = [];
   const { data: sources, error } = await supabaseAdmin
     .from("sources")
     .select("*")
@@ -165,9 +168,12 @@ export async function runCollector(maxSources = 8) {
         const { data: ins, error: e } = await supabaseAdmin
           .from("tenders")
           .upsert(rows, { onConflict: "fingerprint", ignoreDuplicates: true })
-          .select("id");
+          .select("title, organization, deadline, source_url");
         if (e) throw e;
-        added += ins?.length ?? 0;
+        if (ins?.length) {
+          added += ins.length;
+          fresh.push(...(ins as { title: string; organization: string | null; deadline: string | null; source_url: string | null }[]));
+        }
       }
       await supabaseAdmin.from("sources").update({ last_run_at: new Date().toISOString(), last_error: null }).eq("id", s.id);
     } catch (e) {
