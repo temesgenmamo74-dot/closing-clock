@@ -32,6 +32,24 @@ export type Database = {
         }
         Relationships: []
       }
+      bot_subscribers: {
+        Row: {
+          chat_id: number
+          first_name: string | null
+          subscribed_at: string
+        }
+        Insert: {
+          chat_id: number
+          first_name?: string | null
+          subscribed_at?: string
+        }
+        Update: {
+          chat_id?: number
+          first_name?: string | null
+          subscribed_at?: string
+        }
+        Relationships: []
+      }
       collector_runs: {
         Row: {
           added: number
