@@ -9,9 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/_authenticated/tenders")({
   head: () => ({
     meta: [
-      { title: "ጨረታዎች — ጨረታ መከታተያ" },
+      { title: "ጨረታዎች — Eliphaz" },
       { name: "description", content: "በየቀኑ ከታማኝ ምንጮች የሚሰበሰቡ ክፍት ጨረታዎች።" },
-      { property: "og:title", content: "ጨረታዎች — ጨረታ መከታተያ" },
+      { property: "og:title", content: "ጨረታዎች — Eliphaz" },
       { property: "og:description", content: "በየቀኑ ከታማኝ ምንጮች የሚሰበሰቡ ክፍት ጨረታዎች።" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -115,7 +115,7 @@ function TendersPage() {
       <main className="mx-auto w-full max-w-2xl px-5 pb-20 pt-10">
         <header className="flex items-start justify-between gap-3 animate-rise-in">
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight">ጨረታ መከታተያ</h1>
+            <h1 className="font-display text-3xl font-bold tracking-tight">Eliphaz</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {m.profile?.full_name || m.profile?.phone}
               {!m.isAdmin && !m.paid && m.access && ` · ነፃ ሙከራ ${m.trialDays} ቀን ቀርቷል`}

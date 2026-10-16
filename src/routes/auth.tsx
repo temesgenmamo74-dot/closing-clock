@@ -7,9 +7,9 @@ import { normalizePhone, phoneToEmail } from "@/lib/phone";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "ግባ — ጨረታ መከታተያ" },
+      { title: "ግባ — Eliphaz" },
       { name: "description", content: "በስልክ ቁጥርዎ ይመዝገቡ እና የ7 ቀን ነፃ ሙከራ ይጀምሩ።" },
-      { property: "og:title", content: "ግባ — ጨረታ መከታተያ" },
+      { property: "og:title", content: "ግባ — Eliphaz" },
       { property: "og:description", content: "በስልክ ቁጥርዎ ይመዝገቡ እና የ7 ቀን ነፃ ሙከራ ይጀምሩ።" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -59,7 +59,7 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-5">
       <form onSubmit={submit} className="w-full max-w-sm rounded-3xl border bg-card p-7 shadow-card animate-rise-in">
-        <h1 className="font-display text-2xl font-bold">ጨረታ መከታተያ</h1>
+        <h1 className="font-display text-2xl font-bold">Eliphaz</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {mode === "up" ? "ይመዝገቡ — የ7 ቀን ነፃ ሙከራ" : "እንኳን ደህና መጡ"}
         </p>

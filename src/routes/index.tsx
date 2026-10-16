@@ -4,9 +4,9 @@ import { Bell, Globe, Send, Sparkles } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ጨረታ መከታተያ — የኢትዮጵያ ጨረታዎች በአንድ ቦታ" },
+      { title: "Eliphaz — የኢትዮጵያ ጨረታዎች በአንድ ቦታ" },
       { name: "description", content: "ከመንግስትና ከግል ተቋማት ድረ-ገጾች እና ከቴሌግራም ቻናሎች በየቀኑ የሚሰበሰቡ ጨረታዎች። 7 ቀን ነፃ።" },
-      { property: "og:title", content: "ጨረታ መከታተያ — የኢትዮጵያ ጨረታዎች በአንድ ቦታ" },
+      { property: "og:title", content: "Eliphaz — የኢትዮጵያ ጨረታዎች በአንድ ቦታ" },
       { property: "og:description", content: "ከመንግስትና ከግል ተቋማት ድረ-ገጾች እና ከቴሌግራም ቻናሎች በየቀኑ የሚሰበሰቡ ጨረታዎች። 7 ቀን ነፃ።" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -24,7 +24,7 @@ function Landing() {
   ];
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-5 py-16">
-      <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl animate-rise-in">ጨረታ መከታተያ</h1>
+      <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl animate-rise-in">Eliphaz</h1>
       <p className="mt-3 text-muted-foreground animate-rise-in">የኢትዮጵያ ጨረታዎች በአንድ ቦታ — በየቀኑ በራሱ ይሰበሰባሉ።</p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {items.map(({ icon: I, t, d }) => (
