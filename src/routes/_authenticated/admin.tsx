@@ -10,9 +10,9 @@ import { normalizePhone } from "@/lib/phone";
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "አስተዳዳሪ — ጨረታ መከታተያ" },
+      { title: "አስተዳዳሪ — Eliphaz" },
       { name: "description", content: "ተጠቃሚዎችን፣ ክፍያን እና የጨረታ ምንጮችን ያስተዳድሩ።" },
-      { property: "og:title", content: "አስተዳዳሪ — ጨረታ መከታተያ" },
+      { property: "og:title", content: "አስተዳዳሪ — Eliphaz" },
       { property: "og:description", content: "ተጠቃሚዎችን፣ ክፍያን እና የጨረታ ምንጮችን ያስተዳድሩ።" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
