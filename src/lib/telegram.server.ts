@@ -28,16 +28,17 @@ export async function sendTelegramMessage(chatId: number, text: string): Promise
 
 export type TenderBrief = { title: string; organization: string | null; deadline: string | null; source_url: string | null };
 
+const APP_URL = "https://closing-clock.lovable.app/tenders";
+
 export function buildDailySummary(tenders: TenderBrief[]): string {
   const lines = tenders.slice(0, 8).map((t) => {
     const org = t.organization ? ` — ${t.organization}` : "";
     const dl = t.deadline ? `\n  የሚዘጋው: ${t.deadline}` : "";
-    const link = t.source_url ? `\n  <a href="${t.source_url}">ዝርዝር</a>` : "";
-    return `• <b>${escapeHtml(t.title)}</b>${escapeHtml(org)}${dl}${link}`;
+    return `• <b>${escapeHtml(t.title)}</b>${escapeHtml(org)}${dl}`;
   });
   return (
     `🆕 <b>አዲስ ጨረታዎች</b>\n\n${lines.join("\n\n")}\n\n` +
-    `ሙሉ ዝርዝሩን በአፑ ውስጥ ይመልከቱ። ለማቆም /stop ይላኩ።`
+    `👉 <a href="${APP_URL}">ሙሉ ዝርዝሩን በአፑ ውስጥ ይመልከቱ</a>\nለማቆም /stop ይላኩ።`
   );
 }
 
