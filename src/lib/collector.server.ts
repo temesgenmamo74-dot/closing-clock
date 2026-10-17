@@ -122,6 +122,33 @@ async function extract(markdown: string, sourceUrl: string): Promise<Extracted[]
   return (JSON.parse(out).tenders ?? []) as Extracted[];
 }
 
+/** For list items missing key details, open each tender's own page and fill the gaps. */
+async function enrichDetails(items: Extracted[]): Promise<Extracted[]> {
+  let budget = 6; // detail-page scrapes per source (cost/time guard)
+  for (const t of items) {
+    if (budget <= 0) break;
+    if (!t.link?.startsWith("http")) continue;
+    if (t.deadline && t.phone && t.address) continue;
+    budget -= 1;
+    try {
+      const md = await scrape(t.link);
+      if (!md) continue;
+      const [d] = await extract(md, t.link);
+      if (!d) continue;
+      t.deadline = t.deadline ?? d.deadline;
+      t.posted_date = t.posted_date ?? d.posted_date;
+      t.address = t.address ?? d.address;
+      t.phone = t.phone ?? d.phone;
+      t.email = t.email ?? d.email;
+      t.summary = t.summary ?? d.summary;
+      t.organization = t.organization ?? d.organization;
+    } catch {
+      // a failed detail page must not stop the run
+    }
+  }
+  return items;
+}
+
 function fingerprint(t: Extracted) {
   return `${(t.title || "").trim().toLowerCase()}|${(t.organization || "").trim().toLowerCase()}|${t.deadline || ""}`.slice(0, 500);
 }
