@@ -174,7 +174,7 @@ export async function runCollector(maxSources = 8) {
   for (const s of sources ?? []) {
     try {
       const md = await scrape(s.url);
-      const items = md ? await extract(md, s.url) : [];
+      const items = md ? await enrichDetails(await extract(md, s.url)) : [];
       const rows = items
         .filter((t) => t.title?.trim())
         .map((t) => ({
