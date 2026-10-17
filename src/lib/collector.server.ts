@@ -122,6 +122,33 @@ async function extract(markdown: string, sourceUrl: string): Promise<Extracted[]
   return (JSON.parse(out).tenders ?? []) as Extracted[];
 }
 
+/** For list items missing key details, open each tender's own page and fill the gaps. */
+async function enrichDetails(items: Extracted[]): Promise<Extracted[]> {
+  let budget = 6; // detail-page scrapes per source (cost/time guard)
+  for (const t of items) {
+    if (budget <= 0) break;
+    if (!t.link?.startsWith("http")) continue;
+    if (t.deadline && t.phone && t.address) continue;
+    budget -= 1;
+    try {
+      const md = await scrape(t.link);
+      if (!md) continue;
+      const [d] = await extract(md, t.link);
+      if (!d) continue;
+      t.deadline = t.deadline ?? d.deadline;
+      t.posted_date = t.posted_date ?? d.posted_date;
+      t.address = t.address ?? d.address;
+      t.phone = t.phone ?? d.phone;
+      t.email = t.email ?? d.email;
+      t.summary = t.summary ?? d.summary;
+      t.organization = t.organization ?? d.organization;
+    } catch {
+      // a failed detail page must not stop the run
+    }
+  }
+  return items;
+}
+
 function fingerprint(t: Extracted) {
   return `${(t.title || "").trim().toLowerCase()}|${(t.organization || "").trim().toLowerCase()}|${t.deadline || ""}`.slice(0, 500);
 }
@@ -147,7 +174,7 @@ export async function runCollector(maxSources = 8) {
   for (const s of sources ?? []) {
     try {
       const md = await scrape(s.url);
-      const items = md ? await extract(md, s.url) : [];
+      const items = md ? await enrichDetails(await extract(md, s.url)) : [];
       const rows = items
         .filter((t) => t.title?.trim())
         .map((t) => ({
@@ -173,6 +200,14 @@ export async function runCollector(maxSources = 8) {
         if (ins?.length) {
           added += ins.length;
           fresh.push(...(ins as { title: string; organization: string | null; deadline: string | null; source_url: string | null }[]));
+        }
+        // Backfill rows already stored without details
+        for (const r of rows.filter((x) => x.deadline || x.phone || x.address)) {
+          await supabaseAdmin
+            .from("tenders")
+            .update({ deadline: r.deadline, posted_date: r.posted_date, address: r.address, phone: r.phone, email: r.email })
+            .eq("fingerprint", r.fingerprint)
+            .is("deadline", null);
         }
       }
       await supabaseAdmin.from("sources").update({ last_run_at: new Date().toISOString(), last_error: null }).eq("id", s.id);
