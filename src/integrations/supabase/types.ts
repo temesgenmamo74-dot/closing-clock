@@ -74,6 +74,36 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number | null
+          days: number
+          id: string
+          note: string | null
+          paid_at: string
+          recorded_by: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          days?: number
+          id?: string
+          note?: string | null
+          paid_at?: string
+          recorded_by?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          days?: number
+          id?: string
+          note?: string | null
+          paid_at?: string
+          recorded_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
