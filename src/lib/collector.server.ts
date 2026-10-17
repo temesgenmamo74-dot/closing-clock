@@ -201,6 +201,14 @@ export async function runCollector(maxSources = 8) {
           added += ins.length;
           fresh.push(...(ins as { title: string; organization: string | null; deadline: string | null; source_url: string | null }[]));
         }
+        // Backfill rows already stored without details
+        for (const r of rows.filter((x) => x.deadline || x.phone || x.address)) {
+          await supabaseAdmin
+            .from("tenders")
+            .update({ deadline: r.deadline, posted_date: r.posted_date, address: r.address, phone: r.phone, email: r.email })
+            .eq("fingerprint", r.fingerprint)
+            .is("deadline", null);
+        }
       }
       await supabaseAdmin.from("sources").update({ last_run_at: new Date().toISOString(), last_error: null }).eq("id", s.id);
     } catch (e) {
