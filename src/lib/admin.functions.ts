@@ -1,10 +1,46 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { paymentSchema, userEditSchema } from "@/lib/admin-rules";
+import { phoneToEmail } from "@/lib/phone";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
+  });
+
+export const adminRecordPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => paymentSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { error } = await context.supabase.rpc("record_admin_payment", {
+      _id: data.id, _user_id: data.userId, _days: data.days,
+      _amount: data.amount, _note: data.note,
+    });
+    if (error) throw new Error("ክፍያው አልተመዘገበም፤ እንደገና ይሞክሩ።");
+    return { ok: true };
+  });
+
+export const adminUpdateUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => userEditSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: old, error: readError } = await supabaseAdmin.from("profiles").select("phone,full_name").eq("id", data.id).single();
+    if (readError || !old) throw new Error("ተጠቃሚው አልተገኘም");
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(data.id, {
+      email: phoneToEmail(data.phone), email_confirm: true,
+      user_metadata: { phone: data.phone, full_name: data.name },
+    });
+    if (authError) throw new Error("ለውጡ አልተሳካም፤ ስልኩ በሌላ ተጠቃሚ መመዝገቡን ያረጋግጡ።");
+    const { error } = await supabaseAdmin.from("profiles").update({ phone: data.phone, full_name: data.name }).eq("id", data.id);
+    if (error) {
+      await supabaseAdmin.auth.admin.updateUserById(data.id, { email: phoneToEmail(old.phone), email_confirm: true, user_metadata: { phone: old.phone, full_name: old.full_name } });
+      throw new Error("ለውጡ አልተቀመጠም፤ እንደገና ይሞክሩ።");
+    }
+    return { ok: true };
   });
   if (!isAdmin) throw new Error("Forbidden");
 }
