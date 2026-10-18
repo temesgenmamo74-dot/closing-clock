@@ -29,6 +29,13 @@
       "when": 1792296152641,
       "tag": "0003_atomic_admin_payment",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792296429509,
+      "tag": "0004_payment_service_test_access",
+      "breakpoints": true
     }
   ]
 }
