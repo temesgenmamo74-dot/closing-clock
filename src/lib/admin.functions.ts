@@ -8,6 +8,8 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
     _user_id: context.userId,
     _role: "admin",
   });
+  if (!isAdmin) throw new Error("Forbidden");
+}
 
 export const adminRecordPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -42,9 +44,6 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
-  if (!isAdmin) throw new Error("Forbidden");
-}
-
 export const runCollectorNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
