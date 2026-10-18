@@ -22,6 +22,13 @@
       "when": 1792213363051,
       "tag": "0002_payments_history",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792296152641,
+      "tag": "0003_atomic_admin_payment",
+      "breakpoints": true
     }
   ]
 }
