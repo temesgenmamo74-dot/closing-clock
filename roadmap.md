@@ -5,5 +5,6 @@
 - [x] Telegram notifications — bot @Tana_shine_Bot connected; webhook live; users subscribe by sending /start
 - [x] Owner's real phone number & price — 0911992906; 2000 birr yearly
 - [x] Enrich tenders: collector opens each tender detail page to fill deadline/phone/address; backfills old rows
-- [ ] Complete admin: payment recording/history, user edits, tender search/details, delete confirmation, source run status
-- [ ] Verify completed admin flows with an authenticated account
+- [x] Complete admin: payment recording/history, user edits, tender search/details, delete confirmation, source run status
+- [x] Verify owner profile save/readback, tender search/details, canceled deletion, history and annual form defaults with an authenticated account
+- [ ] Verify a real collected payment saves and reads back — waiting for owner's first actual payment; no fabricated payment was recorded

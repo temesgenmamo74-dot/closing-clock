@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.record_admin_payment(uuid,uuid,integer,numeric,text) TO service_role;
