@@ -89,7 +89,7 @@ function AdminPage() {
     <div className="my-6 grid grid-cols-2 gap-4 border-y py-5 sm:grid-cols-4">
       {[['ተጠቃሚዎች', allUsers.length], ['የተከፈለባቸው', allUsers.filter(u => u.paid_until && new Date(u.paid_until).getTime() > Date.now()).length], ['ጨረታዎች', tenders.data?.length ?? 0], ['የተሰበሰበ ክፍያ', money(allPayments.reduce((a,p) => a + Number(p.amount ?? 0), 0))]].map(([label,value]) => <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold">{value}</p></div>)}
     </div>
-    <nav className="flex flex-wrap gap-2 border-b pb-4" aria-label="የአስተዳዳሪ ክፍሎች">{[['users','ተጠቃሚዎች'],['payments','ክፍያዎች'],['tenders','ጨረታዎች'],['sources','ምንጮች'],['settings','የክፍያ መረጃ']].map(([key,label]) => <Button key={key} variant={tab === key ? 'default' : 'ghost'} onClick={() => setTab(key)} aria-pressed={tab === key}>{label}</Button>)}</nav>
+    <nav className="flex flex-wrap gap-2 border-b pb-4" aria-label="የአስተዳዳሪ ክፍሎች">{([['users','ተጠቃሚዎች'],['payments','ክፍያዎች'],['tenders','ጨረታዎች'],['sources','ምንጮች'],['settings','የክፍያ መረጃ']] as const).map(([key,label]) => <Button key={key} variant={tab === key ? 'default' : 'ghost'} onClick={() => setTab(key)} aria-pressed={tab === key}>{label}</Button>)}</nav>
     {msg && <p role="status" className="mt-4 break-words rounded-lg border bg-muted p-3 text-sm">{msg}</p>}
     {[users,sources,settings,tenders,payments].some(q => q.isError) && <p role="alert" className="mt-4 text-destructive">መረጃ ማምጣት አልተሳካም። <Button variant="link" onClick={refresh}>እንደገና ሞክር</Button></p>}
     {tab === 'users' && <section className="pt-6">
