@@ -269,6 +269,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_admin_payment: {
+        Args: {
+          _amount: number
+          _days: number
+          _id: string
+          _note?: string
+          _user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user"
