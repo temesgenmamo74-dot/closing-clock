@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   Building2, CalendarDays, Clock, ExternalLink, LogOut, Mail, MapPin, Phone, Search, Settings, Sparkles, Star, X,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/tenders")({
@@ -42,7 +43,8 @@ function useMe() {
     queryKey: ["me"],
     queryFn: async () => {
       const { data: u } = await supabase.auth.getUser();
-      const id = u.user!.id;
+      if (!u.user) throw new Error("እባክዎ ይግቡ");
+      const id = u.user.id;
       const [{ data: profile }, { data: roles }, { data: settings }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", id).single(),
         supabase.from("user_roles").select("role").eq("user_id", id),
@@ -96,8 +98,10 @@ function TendersPage() {
   }, [tenders.data, saved.data, filter, query]);
 
   async function toggleSave(id: string) {
-    if (saved.data?.has(id)) await supabase.from("saved_tenders").delete().eq("tender_id", id).eq("user_id", me.data!.id);
-    else await supabase.from("saved_tenders").insert({ tender_id: id, user_id: me.data!.id });
+    const userId = me.data?.id;
+    if (!userId) return;
+    if (saved.data?.has(id)) await supabase.from("saved_tenders").delete().eq("tender_id", id).eq("user_id", userId);
+    else await supabase.from("saved_tenders").insert({ tender_id: id, user_id: userId });
     qc.invalidateQueries({ queryKey: ["saved"] });
   }
 
@@ -108,7 +112,8 @@ function TendersPage() {
   }
 
   if (me.isLoading) return <div className="p-10 text-center text-sm text-muted-foreground">በመጫን ላይ…</div>;
-  const m = me.data!;
+  const m = me.data;
+  if (!m) return <p role="alert" className="p-10 text-center">መረጃ አልተገኘም፤ እንደገና ይግቡ።</p>;
 
   return (
     <div className="min-h-screen">
@@ -182,7 +187,7 @@ function TendersPage() {
                       <div className="min-w-0 flex-1 p-4">
                         <div className="flex items-center gap-2">
                           <span className="rounded-full bg-warning/40 px-2.5 py-0.5 text-[11px] font-semibold text-warning-foreground">{t.category ?? "ሌላ"}</span>
-                          <span className="truncate text-[11px] text-muted-foreground">{t.source_name}</span>
+                          <span className="truncate text-[11px] text-muted-foreground">Eliphaz ስብስብ</span>
                           <button onClick={(e) => { e.stopPropagation(); toggleSave(t.id); }} aria-label="አስቀምጥ"
                             className="ml-auto rounded-lg p-1 text-muted-foreground hover:text-warning-foreground">
                             <Star className={`h-4 w-4 ${saved.data?.has(t.id) ? "fill-warning text-warning-foreground" : ""}`} />
@@ -225,11 +230,9 @@ function TendersPage() {
               <Row icon={<Phone className="h-4 w-4 text-primary" />} label="ስልክ" value={detail.phone} />
               <Row icon={<Mail className="h-4 w-4 text-primary" />} label="ኢሜይል" value={detail.email} />
             </div>
+            <p className="mt-5 border-t pt-4 text-xs text-muted-foreground">Eliphaz ስብስብ · የመጀመሪያ ምንጭ: {detail.source_name || "—"}</p>
             {detail.source_url && (
-              <a href={detail.source_url} target="_blank" rel="noreferrer"
-                className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground">
-                <ExternalLink className="h-4 w-4" /> ምንጩን ክፈት ({detail.source_name})
-              </a>
+              <Button asChild variant="outline" className="mt-4 w-full"><a href={detail.source_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /> የመጀመሪያው ማስታወቂያ</a></Button>
             )}
           </div>
         </div>
