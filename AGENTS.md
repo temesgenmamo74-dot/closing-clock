@@ -14,4 +14,5 @@
 - Admin payment recording uses an authenticated, admin-checked atomic database function with a retry-safe payment ID and extends from the later of now or existing expiry. Why: payment history and access must never diverge or double-charge on retry.
 - Admin phone edits update both the Auth login identity and profile through a protected server function. Why: changing a display phone alone would break the expected login number.
 - Admin forms share client-safe validation rules with protected server functions. Why: browser and server must enforce the same payment and identity inputs.
+- Source creation and edits use shared public-HTTPS validation and authenticated admin-checked server functions; original publisher attribution remains separate from collection branding. Why: source management must not obscure provenance or accept local-network URLs.
 

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { paymentSchema, userEditSchema } from "@/lib/admin-rules";
 import { phoneToEmail } from "@/lib/phone";
+import { sourceSchema, sourceEditSchema } from "@/lib/source-rules";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -49,7 +50,7 @@ export const runCollectorNow = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await assertAdmin(context);
     const { runCollector } = await import("@/lib/collector.server");
-    return runCollector(3);
+    return runCollector(20);
   });
 
 export const adminCreateUser = createServerFn({ method: "POST" })
@@ -75,5 +76,26 @@ export const adminCreateUser = createServerFn({ method: "POST" })
         .update({ paid_until: new Date(Date.now() + data.paidDays * 86_400_000).toISOString() })
         .eq("id", created.user.id);
     }
+    return { ok: true };
+  });
+
+export const adminSaveSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(input => sourceSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { error } = await context.supabase.from("sources").insert(data);
+    if (error) throw new Error("ምንጩ አልተቀመጠም።");
+    return { ok: true };
+  });
+
+export const adminEditSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(input => sourceEditSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { id, ...source } = data;
+    const { error } = await context.supabase.from("sources").update({ ...source, last_run_at: null, last_error: null }).eq("id", id);
+    if (error) throw new Error("ምንጩ አልተስተካከለም።");
     return { ok: true };
   });
