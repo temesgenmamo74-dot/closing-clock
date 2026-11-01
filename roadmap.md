@@ -1,5 +1,11 @@
 # Roadmap
 
+- [ ] Credit-free automated collection with verified dates and source run diagnostics
+- [ ] Five priority category filters and Ethiopian-calendar dates
+- [ ] Uploaded Eliphaz logo and favicon
+- [ ] Paid / trial / expired admin summary and status filters
+- [ ] Verify authenticated collection, tender details, dates, and admin views
+
 - [x] Tender app with database, phone sign-up, 7-day trial, admin activation
 - [x] Daily collector from websites + public Telegram channels with AI summaries
 - [x] Telegram notifications — bot @Tana_shine_Bot connected; webhook live; users subscribe by sending /start
