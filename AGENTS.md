@@ -15,4 +15,7 @@
 - Admin phone edits update both the Auth login identity and profile through a protected server function. Why: changing a display phone alone would break the expected login number.
 - Admin forms share client-safe validation rules with protected server functions. Why: browser and server must enforce the same payment and identity inputs.
 - Source creation and edits use shared public-HTTPS validation and authenticated admin-checked server functions; original publisher attribution remains separate from collection branding. Why: source management must not obscure provenance or accept local-network URLs.
+- Collection uses Worker-compatible HTML parsing without paid AI or scraping gateways; fetch only supported public publisher hosts and reject redirects. Why: collection must not stop when AI credits run out or reach internal networks.
+- Source parsers accept only explicit, consistent Gregorian deadlines, preserve original announcement text and attribution, and skip expired or ambiguous dates. Why: invented dates and contact details can cause financial harm.
+- All user-facing dates and countdowns share Ethiopian-calendar formatting and Addis Ababa calendar-day rules; subscription badges derive from existing timestamps. Why: presentation must not change stored deadlines or payment access.
 
