@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, Globe, Send, Sparkles } from "lucide-react";
+import { Brand } from "@/components/brand";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -24,7 +25,7 @@ function Landing() {
   ];
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-5 py-16">
-      <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl animate-rise-in">Eliphaz</h1>
+      <h1 className="animate-rise-in"><Brand large /></h1>
       <p className="mt-3 text-muted-foreground animate-rise-in">የኢትዮጵያ ጨረታዎች በአንድ ቦታ — በየቀኑ በራሱ ይሰበሰባሉ።</p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {items.map(({ icon: I, t, d }) => (
