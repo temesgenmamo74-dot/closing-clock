@@ -135,3 +135,7 @@
 @utility animate-sheet-up {
   animation: sheet-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

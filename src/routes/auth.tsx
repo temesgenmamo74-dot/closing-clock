@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Phone, Lock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePhone, phoneToEmail } from "@/lib/phone";
+import { Brand } from "@/components/brand";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -59,7 +60,7 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-5">
       <form onSubmit={submit} className="w-full max-w-sm rounded-3xl border bg-card p-7 shadow-card animate-rise-in">
-        <h1 className="font-display text-2xl font-bold">Eliphaz</h1>
+        <h1><Brand /></h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {mode === "up" ? "ይመዝገቡ — የ7 ቀን ነፃ ሙከራ" : "እንኳን ደህና መጡ"}
         </p>

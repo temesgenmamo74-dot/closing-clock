@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { Brand } from "@/components/brand";
+import { PRIORITY_CATEGORIES, daysRemaining, formatEthiopianDate, tenderCategory } from "@/lib/tender-rules";
 
 export const Route = createFileRoute("/_authenticated/tenders")({
   head: () => ({
@@ -27,16 +29,9 @@ type Tender = {
   email: string | null; source_url: string | null; source_name: string | null; created_at: string;
 };
 
-const FILTERS = ["ሁሉም", "ክፍት", "የተቀመጡ", "ሕክምና", "ኮንስትራክሽን", "ኤሌክትሪክ", "ካርጎ", "አይቲ", "ቢሮ እቃ", "ሌላ"];
-
-function daysLeft(d: string | null) {
-  if (!d) return null;
-  return Math.ceil((new Date(d + "T23:59:59").getTime() - Date.now()) / 86_400_000);
-}
-function fmt(d: string | null) {
-  if (!d) return "—";
-  return new Date(d + "T00:00:00").toLocaleDateString("am-ET", { year: "numeric", month: "long", day: "numeric" });
-}
+const FILTERS = ["ክፍት", "ሁሉም", "የተቀመጡ", ...PRIORITY_CATEGORIES, "ሕክምና", "ኤሌክትሪክ", "ካርጎ", "አይቲ", "ቢሮ እቃ", "ሌላ"];
+const daysLeft = daysRemaining;
+const fmt = formatEthiopianDate;
 
 function useMe() {
   return useQuery({
@@ -73,9 +68,13 @@ function TendersPage() {
     queryKey: ["tenders"],
     enabled: !!me.data?.access,
     queryFn: async () => {
-      const { data, error } = await supabase.from("tenders").select("*").order("created_at", { ascending: false }).limit(500);
-      if (error) throw error;
-      return data as Tender[];
+      const all: Tender[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await supabase.from("tenders").select("*").order("created_at", { ascending: false }).order("id").range(offset, offset + 499);
+        if (error) throw error;
+        all.push(...data);
+        if (data.length < 500) return all;
+      }
     },
   });
   const saved = useQuery({
@@ -89,9 +88,9 @@ function TendersPage() {
 
   const list = useMemo(() => {
     let l = tenders.data ?? [];
-    if (filter === "ክፍት") l = l.filter((t) => (daysLeft(t.deadline) ?? 0) >= 0);
+    if (filter === "ክፍት") l = l.filter((t) => { const left = daysLeft(t.deadline); return left !== null && left >= 0; });
     else if (filter === "የተቀመጡ") l = l.filter((t) => saved.data?.has(t.id));
-    else if (filter !== "ሁሉም") l = l.filter((t) => t.category === filter);
+    else if (filter !== "ሁሉም") l = l.filter((t) => tenderCategory(t.category, `${t.title} ${t.summary ?? ""}`) === filter);
     const q = query.trim().toLowerCase();
     if (q) l = l.filter((t) => [t.title, t.organization, t.summary, t.category].some((v) => v?.toLowerCase().includes(q)));
     return l;
@@ -120,7 +119,7 @@ function TendersPage() {
       <main className="mx-auto w-full max-w-2xl px-5 pb-20 pt-10">
         <header className="flex items-start justify-between gap-3 animate-rise-in">
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight">Eliphaz</h1>
+            <h1><Brand /></h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {m.profile?.full_name || m.profile?.phone}
               {!m.isAdmin && !m.paid && m.access && ` · ነፃ ሙከራ ${m.trialDays} ቀን ቀርቷል`}
@@ -132,9 +131,9 @@ function TendersPage() {
                 <Settings className="h-5 w-5" />
               </Link>
             )}
-            <button onClick={logout} className="rounded-xl p-2.5 text-muted-foreground hover:bg-accent" aria-label="ውጣ">
+            <Button onClick={logout} variant="ghost" size="icon" aria-label="ውጣ">
               <LogOut className="h-5 w-5" />
-            </button>
+            </Button>
           </div>
         </header>
 
@@ -156,19 +155,19 @@ function TendersPage() {
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ጨረታ ፈልግ…"
                 className="h-12 w-full rounded-2xl border bg-card pl-11 pr-4 text-sm shadow-card outline-none focus:border-primary focus:ring-2 focus:ring-ring/30" />
             </div>
-            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            <div className="mt-4 flex flex-wrap gap-2" aria-label="የጨረታ ዘርፎች">
               {FILTERS.map((c) => (
-                <button key={c} onClick={() => setFilter(c)}
-                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${filter === c ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-accent"}`}>
+                <Button key={c} onClick={() => setFilter(c)} aria-pressed={filter === c} variant={filter === c ? "default" : "secondary"}
+                  className="h-auto max-w-full whitespace-normal rounded-lg px-3 py-2 text-left text-xs leading-5">
                   {c}
-                </button>
+                </Button>
               ))}
             </div>
             <ul className="mt-5 space-y-4">
               {tenders.isLoading && <li className="p-10 text-center text-sm text-muted-foreground">በመጫን ላይ…</li>}
               {!tenders.isLoading && list.length === 0 && (
                 <li className="rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">
-                  ምንም ጨረታ አልተገኘም — አዳዲስ ጨረታዎች በየቀኑ ይሰበሰባሉ
+                  ምንም ጨረታ አልተገኘም።
                 </li>
               )}
               {list.map((t) => {
@@ -177,7 +176,7 @@ function TendersPage() {
                 const urgent = left !== null && !closed && left <= 3;
                 return (
                   <li key={t.id}>
-                    <div onClick={() => setDetail(t)} role="button"
+                    <div onClick={() => setDetail(t)} role="button" tabIndex={0} onKeyDown={e => {if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {e.preventDefault(); setDetail(t);}}}
                       className="flex w-full cursor-pointer overflow-hidden rounded-2xl border bg-card text-left shadow-card transition-transform hover:-translate-y-0.5">
                       <div className={`flex w-20 shrink-0 flex-col items-center justify-center gap-0.5 px-2 py-5 ${closed ? "bg-muted text-muted-foreground" : urgent ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
                         {left === null ? <span className="text-xs font-semibold">ቀን የለም</span>
@@ -186,12 +185,11 @@ function TendersPage() {
                       </div>
                       <div className="min-w-0 flex-1 p-4">
                         <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-warning/40 px-2.5 py-0.5 text-[11px] font-semibold text-warning-foreground">{t.category ?? "ሌላ"}</span>
-                          <span className="truncate text-[11px] text-muted-foreground">Eliphaz ስብስብ</span>
-                          <button onClick={(e) => { e.stopPropagation(); toggleSave(t.id); }} aria-label="አስቀምጥ"
-                            className="ml-auto rounded-lg p-1 text-muted-foreground hover:text-warning-foreground">
+                          <span className="min-w-0 rounded-lg bg-warning/40 px-2 py-1 text-[11px] font-semibold text-warning-foreground">{tenderCategory(t.category, t.title)}</span>
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); toggleSave(t.id); }} aria-label="አስቀምጥ"
+                            className="ml-auto shrink-0 text-muted-foreground">
                             <Star className={`h-4 w-4 ${saved.data?.has(t.id) ? "fill-warning text-warning-foreground" : ""}`} />
-                          </button>
+                          </Button>
                         </div>
                         <h3 className="mt-2 line-clamp-2 font-display font-semibold">{t.title}</h3>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">{t.organization}</p>
@@ -212,14 +210,14 @@ function TendersPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-4 sm:items-center" onClick={() => setDetail(null)}>
           <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl bg-card p-6 shadow-card animate-sheet-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
-              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{detail.category ?? "ሌላ"}</span>
-              <button onClick={() => setDetail(null)} aria-label="ዝጋ" className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent"><X className="h-4 w-4" /></button>
+              <span className="rounded-lg bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{tenderCategory(detail.category, detail.title)}</span>
+              <Button variant="ghost" size="icon" onClick={() => setDetail(null)} aria-label="ዝጋ"><X className="h-4 w-4" /></Button>
             </div>
             <h2 className="mt-3 font-display text-xl font-bold leading-snug">{detail.title}</h2>
             {detail.summary && (
               <div className="mt-4 rounded-2xl bg-primary/5 p-4">
                 <p className="flex items-center gap-1.5 text-xs font-semibold text-primary"><Sparkles className="h-3.5 w-3.5" /> ማጠቃለያ</p>
-                <p className="mt-1.5 text-sm">{detail.summary}</p>
+                <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-7">{detail.summary}</p>
               </div>
             )}
             <div className="mt-5 space-y-4 border-t pt-5 text-sm">
