@@ -3,6 +3,9 @@ import { amharicTitle } from "@/lib/title-translate";
 import { classifyTender, daysRemaining } from "@/lib/tender-rules";
 
 export type ParsedTender = { title: string; organization: string | null; category: string; summary: string; posted_date: string | null; deadline: string; address: string | null; phone: string | null; email: string | null; link: string; reference: string | null };
+export const MIN_DAYS_LEFT = 5;
+// Short-notice proformas (under MIN_DAYS_LEFT) are skipped: bidders cannot prepare in time.
+const tooSoon = (deadline: string, now: number) => (daysRemaining(deadline, now) ?? -1) < MIN_DAYS_LEFT;
 const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim();
 
 export function parseDate(text: string): string | null {
@@ -46,7 +49,7 @@ export function parseGetChereta(html: string, link: string, now = Date.now()): P
   }
   const deadline = parseDate(fields.get("submission deadline") ?? fields.get("deadline") ?? "");
   const secondary = parseDate(fields.get("deadline") ?? "");
-  if (!deadline || (secondary && secondary !== deadline) || (daysRemaining(deadline, now) ?? -1) < 0) return null;
+  if (!deadline || (secondary && secondary !== deadline) || tooSoon(deadline, now)) return null;
   const text = clean(content.textContent);
   const address = fields.get("physical address") ?? fields.get("address") ?? null;
   const contact = fields.get("contact details") ?? address ?? "";
@@ -55,7 +58,7 @@ export function parseGetChereta(html: string, link: string, now = Date.now()): P
   const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}(?=[A-Z]|[^A-Za-z]|$)/)?.[0] ?? null;
   const organization = fields.get("procuring entity") ?? fields.get("company") ?? null;
   const reference = fields.get("reference no") ?? null;
-  return { title: amharicTitle(title), organization, category: classifyTender(`${title} ${fields.get("categories") ?? ""}`), summary: text.replace(/Save Tender\s*$/, "").slice(0,24000), posted_date: parseDate(fields.get("invitation date") ?? ""), deadline, address, phone, email, reference, link };
+  return { title: amharicTitle(title), organization, category: classifyTender(`${title} ${fields.get("categories") ?? ""}`), summary: amharicSummary(amharicTitle(title), organization, deadline, text.replace(/Save Tender\s*$/, "")).slice(0,24000), posted_date: parseDate(fields.get("invitation date") ?? ""), deadline, address, phone, email, reference, link };
 }
 
 // Only explicitly labelled Gregorian deadlines are accepted; Ethiopian or relative dates remain unguessed.
@@ -65,9 +68,16 @@ export function parseTelegram(html: string, base: string, now = Date.now()): Par
     const text = clean(post.querySelector(".tgme_widget_message_text")?.textContent);
     if (!/tender|bid|ጨረታ/i.test(text)) return [];
     const deadline = parseDate(text.match(/(?:deadline|closing date|የመዝጊያ ቀን)\s*[:：-]?\s*(20\d{2}-\d{2}-\d{2})/i)?.[1] ?? "");
-    if (!deadline || (daysRemaining(deadline, now) ?? -1) < 0) return [];
+    if (!deadline || tooSoon(deadline, now)) return [];
     const link = post.querySelector(".tgme_widget_message_date")?.getAttribute("href") ?? base;
     const organization = text.match(/(?:organization|company|ተቋም)\s*[:：]\s*([^;\n]{3,120})/i)?.[1] ?? null;
-    return [{title:text.slice(0,180), organization, category:classifyTender(text), summary:text, posted_date:parseDate(post.querySelector("time")?.getAttribute("datetime") ?? ""), deadline, address:null, phone:text.match(/(?:\+251|0[179])(?:[\s.-]*\d){7,12}/g)?.join(" / ") ?? null, email:text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? null, link, reference:null}];
+    return [{title:text.slice(0,180), organization, category:classifyTender(text), summary:amharicSummary(text.slice(0,180), organization, deadline, text), posted_date:parseDate(post.querySelector("time")?.getAttribute("datetime") ?? ""), deadline, address:null, phone:text.match(/(?:\+251|0[179])(?:[\s.-]*\d){7,12}/g)?.join(" / ") ?? null, email:text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? null, link, reference:null}];
   });
+}
+// Amharic overview built only from extracted fields; the original notice follows verbatim.
+export function amharicSummary(title: string, organization: string | null, deadline: string, original: string): string {
+  const lines = [`ጨረታ፦ ${title}`];
+  if (organization) lines.push(`አውጪ ተቋም፦ ${organization}`);
+  lines.push(`መዝጊያ ቀን፦ ${deadline} (እንደ ምንጩ)`, "", "ዋናው ማስታወቂያ (ከምንጩ እንደወጣ)፦", original);
+  return lines.join("\n");
 }
