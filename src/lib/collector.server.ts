@@ -6,7 +6,9 @@ import { notifySubscribers } from '@/lib/telegram.server';
 async function fetchPage(url: string): Promise<string> {
   const parsed = new URL(url);
   if (parsed.protocol !== 'https:' || !['getchereta.com','www.getchereta.com','t.me'].includes(parsed.hostname)) throw new Error('ይህ ምንጭ ለቀጥታ ንባብ ገና አልተዘጋጀም።');
-  const response = await fetch(url, { signal: AbortSignal.timeout(10000), redirect: 'error', headers: { 'User-Agent': 'Mozilla/5.0 EliphazTenderReader', Accept: 'text/html', 'Accept-Language':'en,am;q=0.9' } });
+  // Workers reject redirect:'error'; use 'manual' and refuse any redirect response.
+  const response = await fetch(url, { signal: AbortSignal.timeout(15000), redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0 EliphazTenderReader', Accept: 'text/html', 'Accept-Language':'en,am;q=0.9' } });
+  if (response.status >= 300 && response.status < 400) throw new Error('ምንጩ ወደ ሌላ አድራሻ አዛውሯል፤ ደህንነት ሲባል አልተከተልነውም።');
   if (!response.ok) throw new Error(`የምንጩ ገጽ አልተከፈተም [${response.status}]`);
   const html = await response.text();
   if (html.length > 3000000) throw new Error('የምንጩ ገጽ ከመጠን በላይ ነው።');
