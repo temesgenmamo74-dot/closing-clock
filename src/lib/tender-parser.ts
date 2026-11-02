@@ -11,8 +11,8 @@ export function parseDate(text: string): string | null {
   if (!value) {
     const english = text.match(/\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(20\d{2})\b/i);
     if (english) {
-      const month = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(english[2].toLowerCase()) + 1;
-      value = `${english[3]}-${String(month).padStart(2,"0")}-${english[1].padStart(2,"0")}`;
+      const month = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf((english[2] ?? "").toLowerCase()) + 1;
+      value = `${english[3]}-${String(month).padStart(2,"0")}-${(english[1] ?? "").padStart(2,"0")}`;
     }
   }
   if (!value) return null;
@@ -38,7 +38,7 @@ export function parseGetChereta(html: string, link: string, now = Date.now()): P
   const fields = new Map<string,string>();
   for (const row of Array.from(content.querySelectorAll("tr"))) {
     const cells = row.querySelectorAll("td");
-    if (cells.length >= 2) fields.set(clean(cells[0].textContent).replace(/:$/, "").toLowerCase(), clean(cells[1].textContent));
+    if (cells.length >= 2) fields.set(clean(cells[0]!.textContent).replace(/:$/, "").toLowerCase(), clean(cells[1]!.textContent));
   }
   for (const li of Array.from(document.querySelectorAll(".widget_getintuch li"))) {
     const label = clean(li.querySelector("strong")?.textContent);
