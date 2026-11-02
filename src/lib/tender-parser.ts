@@ -1,4 +1,5 @@
 import { parseHTML } from "linkedom";
+import { amharicTitle } from "@/lib/title-translate";
 import { classifyTender, daysRemaining } from "@/lib/tender-rules";
 
 export type ParsedTender = { title: string; organization: string | null; category: string; summary: string; posted_date: string | null; deadline: string; address: string | null; phone: string | null; email: string | null; link: string; reference: string | null };
