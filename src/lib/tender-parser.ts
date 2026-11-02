@@ -1,4 +1,5 @@
 import { parseHTML } from "linkedom";
+import { amharicTitle } from "@/lib/title-translate";
 import { classifyTender, daysRemaining } from "@/lib/tender-rules";
 
 export type ParsedTender = { title: string; organization: string | null; category: string; summary: string; posted_date: string | null; deadline: string; address: string | null; phone: string | null; email: string | null; link: string; reference: string | null };
@@ -10,8 +11,8 @@ export function parseDate(text: string): string | null {
   if (!value) {
     const english = text.match(/\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(20\d{2})\b/i);
     if (english) {
-      const month = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(english[2].toLowerCase()) + 1;
-      value = `${english[3]}-${String(month).padStart(2,"0")}-${english[1].padStart(2,"0")}`;
+      const month = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf((english[2] ?? "").toLowerCase()) + 1;
+      value = `${english[3]}-${String(month).padStart(2,"0")}-${(english[1] ?? "").padStart(2,"0")}`;
     }
   }
   if (!value) return null;
@@ -37,7 +38,7 @@ export function parseGetChereta(html: string, link: string, now = Date.now()): P
   const fields = new Map<string,string>();
   for (const row of Array.from(content.querySelectorAll("tr"))) {
     const cells = row.querySelectorAll("td");
-    if (cells.length >= 2) fields.set(clean(cells[0].textContent).replace(/:$/, "").toLowerCase(), clean(cells[1].textContent));
+    if (cells.length >= 2) fields.set(clean(cells[0]!.textContent).replace(/:$/, "").toLowerCase(), clean(cells[1]!.textContent));
   }
   for (const li of Array.from(document.querySelectorAll(".widget_getintuch li"))) {
     const label = clean(li.querySelector("strong")?.textContent);
@@ -50,10 +51,11 @@ export function parseGetChereta(html: string, link: string, now = Date.now()): P
   const address = fields.get("physical address") ?? fields.get("address") ?? null;
   const contact = fields.get("contact details") ?? address ?? "";
   const phone = contact.match(/(?:\+251|00251|0[179])(?:[\s().-]*\d){7,12}/g)?.join(" / ") ?? null;
-  const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? null;
+  // Text cells are concatenated without spaces; stop before a following capitalised label.
+  const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}(?=[A-Z]|[^A-Za-z]|$)/)?.[0] ?? null;
   const organization = fields.get("procuring entity") ?? fields.get("company") ?? null;
   const reference = fields.get("reference no") ?? null;
-  return { title, organization, category: classifyTender(`${title} ${fields.get("categories") ?? ""}`), summary: text.replace(/Save Tender\s*$/, "").slice(0,24000), posted_date: parseDate(fields.get("invitation date") ?? ""), deadline, address, phone, email, reference, link };
+  return { title: amharicTitle(title), organization, category: classifyTender(`${title} ${fields.get("categories") ?? ""}`), summary: text.replace(/Save Tender\s*$/, "").slice(0,24000), posted_date: parseDate(fields.get("invitation date") ?? ""), deadline, address, phone, email, reference, link };
 }
 
 // Only explicitly labelled Gregorian deadlines are accepted; Ethiopian or relative dates remain unguessed.
