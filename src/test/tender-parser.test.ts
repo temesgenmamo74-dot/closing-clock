@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parseDate, parseGetChereta, parseTelegram, getDetailLinks } from "@/lib/tender-parser";
 
-const now = Date.parse("2026-11-01T05:04:00Z");
+const now = Date.parse("2026-10-20T05:04:00Z");
 const html = `<div class="job-info-box"><h1>Laboratory reagents</h1><table><tr><td>Procuring Entity</td><td>University</td></tr><tr><td>Reference No</td><td>LAB-42</td></tr><tr><td>Submission Deadline</td><td>2026-11-02 10:59:17</td></tr><tr><td>Physical Address:</td><td>Room 104, Addis Ababa</td></tr><tr><td>Contact Details:</td><td>Tel: +251 115530423</td></tr></table></div><div class="widget_getintuch"><li><strong>Deadline</strong>02 Nov 2026, 10:59 AM</li></div>`;
 describe("Source integrity", () => {
   it("keeps exact source dates, references and contact details", () => {
@@ -13,6 +13,13 @@ describe("Source integrity", () => {
     expect(parseGetChereta(html.replace("02 Nov 2026","03 Nov 2026"),"https://example.org",now)).toBeNull();
     expect(parseGetChereta(html,"https://example.org",Date.parse("2026-11-03"))).toBeNull();
     expect(parseGetChereta('<div class="job-info-box"><h1>Tender</h1></div>',"https://example.org",now)).toBeNull();
+  });
+  it("skips tenders closing in under 5 days", () => {
+    expect(parseGetChereta(html,"https://example.org",Date.parse("2026-10-29T05:00:00Z"))).toBeNull();
+    expect(parseGetChereta(html,"https://example.org",Date.parse("2026-10-27T05:00:00Z"))).not.toBeNull();
+  });
+  it("writes an Amharic overview before the original notice", () => {
+    expect(parseGetChereta(html,"https://x",now)?.summary.startsWith("ጨረታ፦")).toBe(true);
   });
   it("does not invent ambiguous or invalid dates", () => {
     expect(parseDate("22/02/2019 ዓ.ም")).toBeNull(); expect(parseDate("2026-02-30")).toBeNull();
