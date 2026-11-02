@@ -23,5 +23,6 @@ const RULES: [RegExp, string][] = [
 export function amharicTitle(title: string): string {
   if (/[\u1200-\u137F]/.test(title)) return title;
   for (const [re, label] of RULES) if (re.test(title)) return label;
-  return /procurement|purchase|supply|tender|bid/i.test(title) ? "ጠቅላላ ግዥ" : title;
+  // No specific match: keep the original wording rather than a vague label.
+  return title;
 }
