@@ -29,3 +29,17 @@ describe("Source integrity", () => {
     expect(getDetailLinks('<a href="/tender/42">A</a><a href="https://localhost/tender/1">B</a><a href="/tender/42">C</a>',"https://www.getchereta.com")).toEqual(["https://www.getchereta.com/tender/42"]);
   });
 });
+import { amharicSummary as _as } from "@/lib/tender-parser";
+describe("amharic key facts", () => {
+  it("extracts stated document price and CPO only", () => {
+    const s = _as("t", "Org", "2026-12-01", "Bid document price ETB 600. Bid security of 100,000.00 ETB required.", { phone: "0911", address: "Addis" });
+    expect(s).toContain("የሰነድ መግዣ ዋጋ፦ ብር 600");
+    expect(s).toContain("የጨረታ ማስከበሪያ (CPO)፦ 100,000.00 ብር");
+    expect(s).toContain("ስልክ፦ 0911");
+  });
+  it("omits fee and CPO when not stated", () => {
+    const s = _as("t", null, "2026-12-01", "Bid security 0 ETB");
+    expect(s).not.toContain("CPO");
+    expect(s).not.toContain("የሰነድ");
+  });
+});
