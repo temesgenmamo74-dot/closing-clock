@@ -58,7 +58,7 @@ export function parseGetChereta(html: string, link: string, now = Date.now()): P
   const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}(?=[A-Z]|[^A-Za-z]|$)/)?.[0] ?? null;
   const organization = fields.get("procuring entity") ?? fields.get("company") ?? null;
   const reference = fields.get("reference no") ?? null;
-  return { title: amharicTitle(title), organization, category: classifyTender(`${title} ${fields.get("categories") ?? ""}`), summary: amharicSummary(amharicTitle(title), organization, deadline, text.replace(/Save Tender\s*$/, "")).slice(0,24000), posted_date: parseDate(fields.get("invitation date") ?? ""), deadline, address, phone, email, reference, link };
+  return { title: amharicTitle(title), organization, category: classifyTender(`${title} ${fields.get("categories") ?? ""}`), summary: amharicSummary(amharicTitle(title), organization, deadline, text.replace(/Save Tender\s*$/, ""), { phone, address }).slice(0,24000), posted_date: parseDate(fields.get("invitation date") ?? ""), deadline, address, phone, email, reference, link };
 }
 
 // Only explicitly labelled Gregorian deadlines are accepted; Ethiopian or relative dates remain unguessed.
@@ -74,10 +74,26 @@ export function parseTelegram(html: string, base: string, now = Date.now()): Par
     return [{title:text.slice(0,180), organization, category:classifyTender(text), summary:amharicSummary(text.slice(0,180), organization, deadline, text), posted_date:parseDate(post.querySelector("time")?.getAttribute("datetime") ?? ""), deadline, address:null, phone:text.match(/(?:\+251|0[179])(?:[\s.-]*\d){7,12}/g)?.join(" / ") ?? null, email:text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? null, link, reference:null}];
   });
 }
-// Amharic overview built only from extracted fields; the original notice follows verbatim.
-export function amharicSummary(title: string, organization: string | null, deadline: string, original: string): string {
+const AMOUNT = String.raw`((?:ETB|Birr|ብር)\s*[\d,]+(?:\.\d+)?|[\d,]+(?:\.\d+)?\s*(?:ETB|Birr|ብር))`;
+// Pull an explicitly stated amount near a keyword; null when the notice does not say it.
+function amountNear(text: string, keyword: RegExp): string | null {
+  const m = text.match(new RegExp(`(?:${keyword.source})[^.\\n]{0,80}?${AMOUNT}`, "i"));
+  const v = m?.[1]?.replace(/\s+/g, " ").trim();
+  if (!v || /^(?:ETB|Birr|ብር)?\s*0(?:\.0+)?\s*(?:ETB|Birr|ብር)?$/i.test(v)) return null;
+  return v.replace(/ETB|Birr/i, "ብር");
+}
+
+// Amharic key facts built only from explicitly stated values; the original notice follows verbatim.
+export function amharicSummary(title: string, organization: string | null, deadline: string, original: string, extra: { phone?: string | null; address?: string | null } = {}): string {
   const lines = [`ጨረታ፦ ${title}`];
   if (organization) lines.push(`አውጪ ተቋም፦ ${organization}`);
-  lines.push(`መዝጊያ ቀን፦ ${deadline} (እንደ ምንጩ)`, "", "ዋናው ማስታወቂያ (ከምንጩ እንደወጣ)፦", original);
+  lines.push(`መዝጊያ ቀን፦ ${deadline} (እንደ ምንጩ)`);
+  const doc = amountNear(original, /document|bid document|ሰነድ/);
+  if (doc) lines.push(`የሰነድ መግዣ ዋጋ፦ ${doc}`);
+  const cpo = amountNear(original, /bid security|bid bond|CPO|ማስከበሪያ/);
+  if (cpo) lines.push(`የጨረታ ማስከበሪያ (CPO)፦ ${cpo}`);
+  if (extra.address) lines.push(`አድራሻ፦ ${extra.address}`);
+  if (extra.phone) lines.push(`ስልክ፦ ${extra.phone}`);
+  lines.push("", "ዋናው ማስታወቂያ (ከምንጩ እንደወጣ)፦", original);
   return lines.join("\n");
 }
