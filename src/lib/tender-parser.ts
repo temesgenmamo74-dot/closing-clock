@@ -58,7 +58,10 @@ export function parseGetChereta(html: string, link: string, now = Date.now()): P
   const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}(?=[A-Z]|[^A-Za-z]|$)/)?.[0] ?? null;
   const organization = fields.get("procuring entity") ?? fields.get("company") ?? null;
   const reference = fields.get("reference no") ?? null;
-  return { title: amharicTitle(title), organization, category: classifyTender(`${title} ${fields.get("categories") ?? ""}`), summary: amharicSummary(amharicTitle(title), organization, deadline, text.replace(/Save Tender\s*$/, ""), { phone, address }).slice(0,24000), posted_date: parseDate(fields.get("invitation date") ?? ""), deadline, address, phone, email, reference, link };
+  // Dictionary titles are generic; append issuer and reference so distinct notices never look like duplicates.
+  const am = amharicTitle(title);
+  const finalTitle = am === title ? title : [am, organization, reference].filter(Boolean).join(" — ");
+  return { title: finalTitle, organization, category: classifyTender(`${title} ${fields.get("categories") ?? ""}`), summary: amharicSummary(finalTitle, organization, deadline, text.replace(/Save Tender\s*$/, ""), { phone, address }).slice(0,24000), posted_date: parseDate(fields.get("invitation date") ?? ""), deadline, address, phone, email, reference, link };
 }
 
 // Only explicitly labelled Gregorian deadlines are accepted; Ethiopian or relative dates remain unguessed.
