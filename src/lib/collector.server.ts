@@ -1,11 +1,11 @@
 // Server-only, credit-free collection. Never guesses dates or missing contact fields.
 import { createHash } from 'node:crypto';
-import { getDetailLinks, parseGetChereta, parseTelegram, type ParsedTender } from '@/lib/tender-parser';
+import { getDetailLinks, parseGetChereta, parsePPS, parseTelegram, type ParsedTender } from '@/lib/tender-parser';
 import { notifySubscribers } from '@/lib/telegram.server';
 
 async function fetchPage(url: string): Promise<string> {
   const parsed = new URL(url);
-  if (parsed.protocol !== 'https:' || !['getchereta.com','www.getchereta.com','t.me'].includes(parsed.hostname)) throw new Error('ይህ ምንጭ ለቀጥታ ንባብ ገና አልተዘጋጀም።');
+  if (parsed.protocol !== 'https:' || !['getchereta.com','www.getchereta.com','t.me','pps.gov.et'].includes(parsed.hostname)) throw new Error('ይህ ምንጭ ለቀጥታ ንባብ ገና አልተዘጋጀም።');
   // Workers reject redirect:'error'; use 'manual' and refuse any redirect response.
   const response = await fetch(url, { signal: AbortSignal.timeout(30000), redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0 EliphazTenderReader', Accept: 'text/html', 'Accept-Language':'en,am;q=0.9' } });
   if (response.status >= 300 && response.status < 400) throw new Error('ምንጩ ወደ ሌላ አድራሻ አዛውሯል፤ ደህንነት ሲባል አልተከተልነውም።');
@@ -31,11 +31,20 @@ export async function runCollector(maxSources = 20) {
       try {
         const html = await fetchPage(source.url);
         let items: ParsedTender[] = [];
-        if (new URL(source.url).hostname === 't.me') {
+        if (new URL(source.url).hostname === 'pps.gov.et') {
+          items = parsePPS(html, source.url);
+          if (!items.length) throw new Error('ክፍት ጨረታ ከግልጽ መዝጊያ ቀን ጋር አልተገኘም።');
+        } else if (new URL(source.url).hostname === 't.me') {
           items = parseTelegram(html, source.url);
           if (!items.length) throw new Error('የሚነበብ ክፍት ጨረታና ግልጽ መዝጊያ ቀን አልተገኘም፤ ፎቶና ያልተረጋገጡ ቀኖች አልተገመቱም።');
         } else {
-          const links = getDetailLinks(html,source.url).slice(0,50);
+          // Read pages 1-3 of each listing so busy days are not cut off.
+          const pages = [html];
+          for (const n of [2,3]) {
+            const u = new URL(source.url); u.searchParams.set('page', String(n));
+            try { pages.push(await fetchPage(u.href)); } catch { break; }
+          }
+          const links = [...new Set(pages.flatMap(p => getDetailLinks(p,source.url)))].slice(0,120);
           if (!links.length) throw new Error('የጨረታ ዝርዝር አልተነበበም።');
           const failures: string[] = [];
           // Small batches avoid overwhelming a publisher.
