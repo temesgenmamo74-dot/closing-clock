@@ -18,6 +18,14 @@ export function parseDate(text: string): string | null {
       value = `${english[3]}-${String(month).padStart(2,"0")}-${(english[1] ?? "").padStart(2,"0")}`;
     }
   }
+  if (!value) {
+    // Month-first English, e.g. "Nov. 9, 2026" (PPS notices).
+    const mf = text.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(20\d{2})\b/i);
+    if (mf) {
+      const month = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf((mf[1] ?? "").toLowerCase()) + 1;
+      value = `${mf[3]}-${String(month).padStart(2,"0")}-${(mf[2] ?? "").padStart(2,"0")}`;
+    }
+  }
   if (!value) return null;
   const d = new Date(`${value}T12:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0,10) === value ? value : null;
@@ -99,4 +107,29 @@ export function amharicSummary(title: string, organization: string | null, deadl
   if (extra.phone) lines.push(`ስልክ፦ ${extra.phone}`);
   lines.push("", "ዋናው ማስታወቂያ (ከምንጩ እንደወጣ)፦", original);
   return lines.join("\n");
+}
+
+// Federal Public Procurement Service: one tender per lot row with an explicit lot reference and deadline.
+export function parsePPS(html: string, link: string, now = Date.now()): ParsedTender[] {
+  const { document } = parseHTML(html);
+  const out = new Map<string, ParsedTender>();
+  const organization = "Federal Public Procurement Service (PPS)";
+  for (const table of Array.from(document.querySelectorAll("table"))) {
+    const rows = Array.from(table.querySelectorAll("tr"));
+    const header = Array.from(rows[0]?.querySelectorAll("td,th") ?? []).map(c => clean(c.textContent).toLowerCase());
+    const iItem = header.findIndex(h => h.includes("description")), iRef = header.findIndex(h => h.includes("ref")), iDl = header.findIndex(h => h.includes("submission"));
+    if (iItem < 0 || iRef < 0 || iDl < 0) continue;
+    let block = table.parentElement; while (block && clean(block.textContent).length < 400 && block.parentElement) block = block.parentElement;
+    const text = clean(block?.textContent);
+    const phone = text.match(/Tel\.?\s*([0-9/\s-]{9,40})/i)?.[1]?.trim() ?? null;
+    for (const row of rows.slice(1)) {
+      const cells = Array.from(row.querySelectorAll("td")).map(c => clean(c.textContent));
+      const item = cells[iItem], reference = cells[iRef], deadline = parseDate(cells[iDl] ?? "");
+      if (!item || !reference || !deadline || tooSoon(deadline, now) || out.has(reference)) continue;
+      const am = amharicTitle(item);
+      const title = [am === item ? item : am, organization, reference].join(" — ");
+      out.set(reference, { title, organization, category: classifyTender(item), summary: amharicSummary(title, organization, deadline, text.slice(0, 6000), { phone, address: "Addis Ababa, Ethiopia" }), posted_date: null, deadline, address: "Addis Ababa, Ethiopia", phone, email: null, link: `${link}#${encodeURIComponent(reference)}`, reference });
+    }
+  }
+  return [...out.values()];
 }

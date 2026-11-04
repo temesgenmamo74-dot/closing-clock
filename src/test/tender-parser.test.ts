@@ -43,3 +43,14 @@ describe("amharic key facts", () => {
     expect(s).not.toContain("የሰነድ");
   });
 });
+import { parsePPS } from "@/lib/tender-parser";
+describe("PPS government notices", () => {
+  const pps = `<article><p>Abridged Tender Notice ${"x ".repeat(250)}</p><table><tr><td>Lot No.</td><td>Item Description</td><td>QTY</td><td>Lot Ref. No.</td><td>Bid Submission Deadline</td></tr><tr><td>Lot-6</td><td>Office Furniture</td><td>Assorted</td><td>PPS-ICB-G-0011</td><td>Nov. 9, 2026 at 10:00 AM</td></tr></table><p>Tel. 011-1-223722</p></article>`;
+  it("reads the lot deadline exactly as published", () => {
+    const t = parsePPS(pps, "https://pps.gov.et/procurement-tender-notice", Date.parse("2026-10-20"));
+    expect(t).toHaveLength(1); expect(t[0]?.deadline).toBe("2026-11-09"); expect(t[0]?.reference).toBe("PPS-ICB-G-0011");
+  });
+  it("skips lots closing within 5 days", () => {
+    expect(parsePPS(pps, "https://pps.gov.et/x", Date.parse("2026-11-06"))).toEqual([]);
+  });
+});
