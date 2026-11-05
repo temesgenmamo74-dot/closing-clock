@@ -22,6 +22,10 @@ export async function runCollector(maxSources = 20) {
   const errors: string[] = [];
   const fresh: ParsedTender[] = [];
   let added = 0, notified = 0;
+  // Auto-cleanup: drop tenders whose deadline passed (Addis Ababa calendar day, UTC+3).
+  const addisToday = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
+  const { error: cleanupError } = await supabaseAdmin.from('tenders').delete().lt('deadline', addisToday);
+  if (cleanupError) errors.push(`ማጽዳት፦ ${cleanupError.message}`);
   try {
     const { data: sources, error } = await supabaseAdmin.from('sources').select('*').eq('active',true).order('last_run_at',{ascending:true,nullsFirst:true}).limit(maxSources);
     if (error) throw error;
