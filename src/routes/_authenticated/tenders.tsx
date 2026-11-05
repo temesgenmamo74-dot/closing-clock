@@ -9,6 +9,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Brand } from "@/components/brand";
 import { PRIORITY_CATEGORIES, daysRemaining, formatEthiopianDate, tenderCategory } from "@/lib/tender-rules";
 
+function ShareButtons({ text }: { text: string }) {
+  const enc = encodeURIComponent(text);
+  return (
+    <div className="mt-3 grid grid-cols-3 gap-2">
+      <Button asChild variant="secondary" size="sm"><a href={`https://t.me/share/url?url=${encodeURIComponent("https://closing-clock.lovable.app")}&text=${enc}`} target="_blank" rel="noreferrer">ቴሌግራም</a></Button>
+      <Button asChild variant="secondary" size="sm"><a href={`https://wa.me/?text=${enc}`} target="_blank" rel="noreferrer">ዋትስአፕ</a></Button>
+      <Button variant="secondary" size="sm" onClick={() => navigator.clipboard?.writeText(text)}>ቅዳ</Button>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/_authenticated/tenders")({
   head: () => ({
     meta: [
@@ -232,6 +243,7 @@ function TendersPage() {
             {detail.source_url && (
               <Button asChild variant="outline" className="mt-4 w-full"><a href={detail.source_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /> የመጀመሪያው ማስታወቂያ</a></Button>
             )}
+            <ShareButtons text={`📢 ${detail.title}\n🏢 ${detail.organization ?? ""}\n⏰ የመዝጊያ ቀን: ${fmt(detail.deadline)}\n\nበEliphaz ይመልከቱ: https://closing-clock.lovable.app`} />
           </div>
         </div>
       )}
