@@ -3,7 +3,7 @@ import { amharicTitle } from "@/lib/title-translate";
 import { classifyTender, daysRemaining } from "@/lib/tender-rules";
 
 export type ParsedTender = { title: string; organization: string | null; category: string; summary: string; posted_date: string | null; deadline: string; address: string | null; phone: string | null; email: string | null; link: string; reference: string | null };
-export const MIN_DAYS_LEFT = 5;
+export const MIN_DAYS_LEFT = 3;
 // Short-notice proformas (under MIN_DAYS_LEFT) are skipped: bidders cannot prepare in time.
 const tooSoon = (deadline: string, now: number) => (daysRemaining(deadline, now) ?? -1) < MIN_DAYS_LEFT;
 const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim();

@@ -14,9 +14,9 @@ describe("Source integrity", () => {
     expect(parseGetChereta(html,"https://example.org",Date.parse("2026-11-03"))).toBeNull();
     expect(parseGetChereta('<div class="job-info-box"><h1>Tender</h1></div>',"https://example.org",now)).toBeNull();
   });
-  it("skips tenders closing in under 5 days", () => {
-    expect(parseGetChereta(html,"https://example.org",Date.parse("2026-10-29T05:00:00Z"))).toBeNull();
-    expect(parseGetChereta(html,"https://example.org",Date.parse("2026-10-27T05:00:00Z"))).not.toBeNull();
+  it("skips tenders closing in under 3 days", () => {
+    expect(parseGetChereta(html,"https://example.org",Date.parse("2026-10-31T05:00:00Z"))).toBeNull();
+    expect(parseGetChereta(html,"https://example.org",Date.parse("2026-10-30T05:00:00Z"))).not.toBeNull();
   });
   it("writes an Amharic overview before the original notice", () => {
     expect(parseGetChereta(html,"https://x",now)?.summary.startsWith("ጨረታ፦")).toBe(true);
@@ -50,7 +50,8 @@ describe("PPS government notices", () => {
     const t = parsePPS(pps, "https://pps.gov.et/procurement-tender-notice", Date.parse("2026-10-20"));
     expect(t).toHaveLength(1); expect(t[0]?.deadline).toBe("2026-11-09"); expect(t[0]?.reference).toBe("PPS-ICB-G-0011");
   });
-  it("skips lots closing within 5 days", () => {
-    expect(parsePPS(pps, "https://pps.gov.et/x", Date.parse("2026-11-06"))).toEqual([]);
+  it("skips lots closing within 3 days", () => {
+    expect(parsePPS(pps, "https://pps.gov.et/x", Date.parse("2026-11-07"))).toEqual([]);
+    expect(parsePPS(pps, "https://pps.gov.et/x", Date.parse("2026-11-06"))).toHaveLength(1);
   });
 });
