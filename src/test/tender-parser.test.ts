@@ -55,3 +55,18 @@ describe("PPS government notices", () => {
     expect(parsePPS(pps, "https://pps.gov.et/x", Date.parse("2026-11-06"))).toHaveLength(1);
   });
 });
+import { parseBerhanBank, getBerhanLinks } from "@/lib/tender-parser";
+describe("Berhan Bank notices", () => {
+  const page = `<h1>INVITATION FOR BIDS (IFB)-Procurement of Construction Works</h1><div class="elementor-widget-theme-post-content">Procurement Reference No.: BrB/OCB/Building/2026/27/19 Bids shall be delivered on or before 14:00 hours, (2:00 PM), 20 October 2026. Tel. 011 663 2097</div>`;
+  it("reads the explicit 'on or before' deadline", () => {
+    const t = parseBerhanBank(page, "https://berhanbanksc.com/x/", Date.parse("2026-10-01"));
+    expect(t?.deadline).toBe("2026-10-20"); expect(t?.reference).toBe("BrB/OCB/Building/2026/27/19"); expect(t?.category).toBe("ኮንስትራክሽን");
+  });
+  it("skips expired notices and conflicting deadlines", () => {
+    expect(parseBerhanBank(page, "https://berhanbanksc.com/x/", Date.parse("2026-11-06"))).toBeNull();
+    expect(parseBerhanBank(page.replace("Tel.", "on or before 25 October 2026. Tel."), "https://berhanbanksc.com/x/", Date.parse("2026-10-01"))).toBeNull();
+  });
+  it("only follows notice posts on the bank's own site", () => {
+    expect(getBerhanLinks('<article><a href="https://berhanbanksc.com/invitation-for-bids-x/">A</a><a href="https://evil.com/bid-x/">B</a><a href="https://berhanbanksc.com/bids/">C</a></article>', "https://berhanbanksc.com/bids/")).toEqual(["https://berhanbanksc.com/invitation-for-bids-x/"]);
+  });
+});

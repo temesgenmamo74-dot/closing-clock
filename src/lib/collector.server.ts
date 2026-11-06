@@ -1,11 +1,11 @@
 // Server-only, credit-free collection. Never guesses dates or missing contact fields.
 import { createHash } from 'node:crypto';
-import { getDetailLinks, parseGetChereta, parsePPS, parseTelegram, type ParsedTender } from '@/lib/tender-parser';
+import { getBerhanLinks, parseBerhanBank, getDetailLinks, parseGetChereta, parsePPS, parseTelegram, type ParsedTender } from '@/lib/tender-parser';
 import { notifySubscribers } from '@/lib/telegram.server';
 
 async function fetchPage(url: string): Promise<string> {
   const parsed = new URL(url);
-  if (parsed.protocol !== 'https:' || !['getchereta.com','www.getchereta.com','t.me','pps.gov.et'].includes(parsed.hostname)) throw new Error('ይህ ምንጭ ለቀጥታ ንባብ ገና አልተዘጋጀም።');
+  if (parsed.protocol !== 'https:' || !['getchereta.com','www.getchereta.com','t.me','pps.gov.et','berhanbanksc.com'].includes(parsed.hostname)) throw new Error('ይህ ምንጭ ለቀጥታ ንባብ ገና አልተዘጋጀም።');
   // Workers reject redirect:'error'; use 'manual' and refuse any redirect response.
   const response = await fetch(url, { signal: AbortSignal.timeout(30000), redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0 EliphazTenderReader', Accept: 'text/html', 'Accept-Language':'en,am;q=0.9' } });
   if (response.status >= 300 && response.status < 400) throw new Error('ምንጩ ወደ ሌላ አድራሻ አዛውሯል፤ ደህንነት ሲባል አልተከተልነውም።');
@@ -38,6 +38,13 @@ export async function runCollector(maxSources = 20) {
         if (new URL(source.url).hostname === 'pps.gov.et') {
           items = parsePPS(html, source.url);
           if (!items.length) throw new Error('ክፍት ጨረታ ከግልጽ መዝጊያ ቀን ጋር አልተገኘም።');
+        } else if (new URL(source.url).hostname === 'berhanbanksc.com') {
+          const links = getBerhanLinks(html, source.url).slice(0, 20);
+          for (const link of links) {
+            try { const item = parseBerhanBank(await fetchPage(link), link); if (item) items.push(item); }
+            catch (e) { sourceError = e instanceof Error ? e.message : String(e); }
+          }
+          if (!items.length) throw new Error(links.length ? 'ክፍት ጨረታ ከግልጽ መዝጊያ ቀን ጋር አልተገኘም (ያሉት ጊዜያቸው አልፏል)።' : 'የጨረታ ዝርዝር አልተነበበም።');
         } else if (new URL(source.url).hostname === 't.me') {
           items = parseTelegram(html, source.url);
           if (!items.length) throw new Error('የሚነበብ ክፍት ጨረታና ግልጽ መዝጊያ ቀን አልተገኘም፤ ፎቶና ያልተረጋገጡ ቀኖች አልተገመቱም።');
