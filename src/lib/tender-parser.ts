@@ -148,7 +148,7 @@ export function getBerhanLinks(html: string, base: string): string[] {
 export function parseBerhanBank(html: string, link: string, now = Date.now()): ParsedTender | null {
   const { document } = parseHTML(html);
   const content = document.querySelector(".elementor-widget-theme-post-content") ?? document.querySelector(".entry-content");
-  const title = clean(document.querySelector("h1")?.textContent);
+  const title = clean(document.querySelector("h1")?.textContent || document.querySelector('meta[property="og:title"]')?.getAttribute("content") || document.querySelector("title")?.textContent).replace(/\s*[-–|]\s*Berhan Bank.*$/i, "");
   const text = clean(content?.textContent);
   if (!content || !title || !/bid|tender|ጨረታ/i.test(`${title} ${text}`)) return null;
   const dates = [...new Set([...text.matchAll(/on or before[^.]{0,80}?((?:\d{1,2}\s+[A-Za-z]{3,9}\.?,?\s+20\d{2})|(?:[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+20\d{2}))/gi)].map(m => parseDate(m[1] ?? "")).filter((d): d is string => !!d))];
