@@ -133,3 +133,32 @@ export function parsePPS(html: string, link: string, now = Date.now()): ParsedTe
   }
   return [...out.values()];
 }
+
+// Berhan Bank: listing links to WordPress posts; deadline only from an explicit "on or before <date>" clause.
+export function getBerhanLinks(html: string, base: string): string[] {
+  const { document } = parseHTML(html);
+  return [...new Set(Array.from(document.querySelectorAll("article a[href]")).flatMap(a => {
+    try {
+      const url = new URL(a.getAttribute("href") ?? "", base);
+      return url.hostname === "berhanbanksc.com" && /bid|tender|ifb|auction|sale|ጨረታ|%e1%8c%a8%e1%88%a8%e1%89%b3/i.test(url.pathname) && url.pathname.split("/").filter(Boolean).length === 1 && !/^\/(bids|tender)\/?$/.test(url.pathname) ? [url.href] : [];
+    } catch { return []; }
+  }))];
+}
+
+export function parseBerhanBank(html: string, link: string, now = Date.now()): ParsedTender | null {
+  const { document } = parseHTML(html);
+  const content = document.querySelector(".elementor-widget-theme-post-content") ?? document.querySelector(".entry-content");
+  const title = clean(document.querySelector("h1")?.textContent);
+  const text = clean(content?.textContent);
+  if (!content || !title || !/bid|tender|ጨረታ/i.test(`${title} ${text}`)) return null;
+  const dates = [...new Set([...text.matchAll(/on or before[^.]{0,80}?((?:\d{1,2}\s+[A-Za-z]{3,9}\.?,?\s+20\d{2})|(?:[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+20\d{2}))/gi)].map(m => parseDate(m[1] ?? "")).filter((d): d is string => !!d))];
+  if (dates.length !== 1) return null;
+  const deadline = dates[0]!;
+  if (tooSoon(deadline, now)) return null;
+  const organization = "Berhan Bank S.C.";
+  const reference = text.match(/Reference No\.?\s*:?\s*([A-Za-z0-9/._-]{4,60})/i)?.[1] ?? null;
+  const phone = text.match(/Tel\.?\s*([0-9/\s+-]{9,40})/i)?.[1]?.trim() ?? null;
+  const am = amharicTitle(title);
+  const finalTitle = [am === title ? title : am, organization, reference].filter(Boolean).join(" — ");
+  return { title: finalTitle, organization, category: classifyTender(`${title} ${text.slice(0, 1500)}`), summary: amharicSummary(finalTitle, organization, deadline, text, { phone }).slice(0, 24000), posted_date: null, deadline, address: null, phone, email: null, link, reference };
+}
