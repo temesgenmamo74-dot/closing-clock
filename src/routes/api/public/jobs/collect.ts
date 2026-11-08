@@ -8,7 +8,7 @@ export const Route = createFileRoute("/api/public/jobs/collect")({
       POST: async ({ request }) => {
         const authFailure = await authenticateCronRequest(request);
         if (authFailure) return authFailure;
-        const result = await runCollector(20);
+        const result = await runCollector(2);
         return Response.json({ success: true, ...result });
       },
     },
