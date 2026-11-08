@@ -3,11 +3,13 @@ import { createHash } from 'node:crypto';
 import { getBerhanLinks, parseBerhanBank, getDetailLinks, parseGetChereta, parsePPS, parseTelegram, type ParsedTender } from '@/lib/tender-parser';
 import { notifySubscribers } from '@/lib/telegram.server';
 
+const SUPPORTED_HOSTS = ['getchereta.com','www.getchereta.com','t.me','pps.gov.et','berhanbanksc.com'];
+
 async function fetchPage(url: string): Promise<string> {
   const parsed = new URL(url);
-  if (parsed.protocol !== 'https:' || !['getchereta.com','www.getchereta.com','t.me','pps.gov.et','berhanbanksc.com'].includes(parsed.hostname)) throw new Error('ይህ ምንጭ ለቀጥታ ንባብ ገና አልተዘጋጀም።');
+  if (parsed.protocol !== 'https:' || !SUPPORTED_HOSTS.includes(parsed.hostname)) throw new Error('ይህ ምንጭ ለቀጥታ ንባብ ገና አልተዘጋጀም።');
   // Workers reject redirect:'error'; use 'manual' and refuse any redirect response.
-  const response = await fetch(url, { signal: AbortSignal.timeout(30000), redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0 EliphazTenderReader', Accept: 'text/html', 'Accept-Language':'en,am;q=0.9' } });
+  const response = await fetch(url, { signal: AbortSignal.timeout(20000), redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0 EliphazTenderReader', Accept: 'text/html', 'Accept-Language':'en,am;q=0.9' } });
   if (response.status >= 300 && response.status < 400) throw new Error('ምንጩ ወደ ሌላ አድራሻ አዛውሯል፤ ደህንነት ሲባል አልተከተልነውም።');
   if (!response.ok) throw new Error(`የምንጩ ገጽ አልተከፈተም [${response.status}]`);
   const html = await response.text();
@@ -27,10 +29,16 @@ export async function runCollector(maxSources = 20) {
   const { error: cleanupError } = await supabaseAdmin.from('tenders').delete().lt('deadline', addisToday);
   if (cleanupError) errors.push(`ማጽዳት፦ ${cleanupError.message}`);
   try {
-    const { data: sources, error } = await supabaseAdmin.from('sources').select('*').eq('active',true).order('last_run_at',{ascending:true,nullsFirst:true}).limit(maxSources);
+    const { data: allSources, error } = await supabaseAdmin.from('sources').select('*').eq('active',true).order('last_run_at',{ascending:true,nullsFirst:true});
     if (error) throw error;
-    // Independent publishers run concurrently so one unavailable site cannot block others.
-    await Promise.all((sources ?? []).map(async source => {
+    // Unsupported publishers are marked without fetching so they never use a run's slots.
+    const isSupported = (u: string) => { try { return SUPPORTED_HOSTS.includes(new URL(u).hostname); } catch { return false; } };
+    const unsupported = (allSources ?? []).filter(s => !isSupported(s.url));
+    if (unsupported.length) await supabaseAdmin.from('sources').update({ last_run_at: new Date().toISOString(), last_error: 'ይህ ምንጭ ለቀጥታ ንባብ ገና አልተዘጋጀም።' }).in('id', unsupported.map(s => s.id));
+    const sources = (allSources ?? []).filter(s => isSupported(s.url)).slice(0, maxSources);
+    // Sources run one at a time: the runtime allows only 6 open requests per invocation,
+    // and the schedule calls this route repeatedly so every source gets its turn.
+    for (const source of sources) await (async () => {
       let sourceError: string | null = null;
       try {
         const html = await fetchPage(source.url);
@@ -86,7 +94,7 @@ export async function runCollector(maxSources = 20) {
       if(sourceError) errors.push(`${source.name}: ${sourceError}`);
       const {error: statusError} = await supabaseAdmin.from('sources').update({last_run_at:new Date().toISOString(),last_error:sourceError}).eq('id',source.id);
       if(statusError) errors.push(`${source.name}: ${statusError.message}`);
-    }));
+    })();
     if(fresh.length) {
       try { notified = await notifySubscribers(fresh.map(t => ({...t,source_url:t.link}))); }
       catch(e) { errors.push(`Telegram: ${e instanceof Error ? e.message : String(e)}`); }
